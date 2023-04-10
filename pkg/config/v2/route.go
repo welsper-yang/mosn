@@ -301,11 +301,12 @@ type VirtualHost struct {
 
 // RouterMatch represents the route matching parameters
 type RouterMatch struct {
-	Prefix         string                 `json:"prefix,omitempty"`    // Match request's Path with Prefix Comparing
-	Path           string                 `json:"path,omitempty"`      // Match request's Path with Exact Comparing
-	Regex          string                 `json:"regex,omitempty"`     // Match request's Path with Regex Comparing
-	Headers        []HeaderMatcher        `json:"headers,omitempty"`   // Match request's Headers
-	Variables      []VariableMatcher      `json:"variables,omitempty"` // Match request's variable
+	Prefix         string                 `json:"prefix,omitempty"`     // Match request's Path with Prefix Comparing
+	Path           string                 `json:"path,omitempty"`       // Match request's Path with Exact Comparing
+	Regex          string                 `json:"regex,omitempty"`      // Match request's Path with Regex Comparing
+	QueryParams    []QueryParamMatcher    `json:"parameters,omitempty"` // Match request's Query Parameters
+	Headers        []HeaderMatcher        `json:"headers,omitempty"`    // Match request's Headers
+	Variables      []VariableMatcher      `json:"variables,omitempty"`  // Match request's variable
 	DslExpressions []DslExpressionMatcher `json:"dsl_expressions,omitempty"`
 }
 
@@ -344,6 +345,12 @@ type VariableMatcher struct {
 	Value string `json:"value,omitempty"`
 	Regex string `json:"regex,omitempty"`
 	Model string `json:"model,omitempty"` // support && and || operator
+}
+
+type QueryParamMatcher struct {
+	Name  string `json:"name,omitempty"`
+	Value string `json:"value,omitempty"`
+	Regex bool   `json:"regex,omitempty"`
 }
 
 type DslExpressionMatcher struct {

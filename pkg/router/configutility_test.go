@@ -338,7 +338,7 @@ func TestMatchQueryParams(t *testing.T) {
 		},
 	}
 	for _, c := range configs {
-		if kv, err := NewKeyValueData(c); err == nil {
+		if kv, err := NewKeyValueDataForHeader(c); err == nil {
 			qpm = append(qpm, kv)
 		}
 	}

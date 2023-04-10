@@ -70,21 +70,37 @@ func (k *KeyValueData) Matcher() string {
 	return k.Value.Value
 }
 
-func NewKeyValueData(header v2.HeaderMatcher) (*KeyValueData, error) {
+func newKeyValueData(name, value string, regex bool) (*KeyValueData, error) {
 	kvData := &KeyValueData{
-		Name: header.Name,
+		Name: name,
 		Value: StringMatch{
-			Value:   header.Value,
-			IsRegex: header.Regex,
+			Value:   value,
+			IsRegex: regex,
 		},
 	}
-	if header.Regex {
-		p, err := regexp.Compile(header.Value)
+	if regex {
+		p, err := regexp.Compile(value)
 		if err != nil {
-			log.DefaultLogger.Errorf("parse route header matcher config failed, ignore it, error: %v", err)
+			log.DefaultLogger.Errorf("create KeyValueData failed, error: %v", err)
 			return nil, err
 		}
 		kvData.Value.RegexPattern = p
+	}
+	return kvData, nil
+}
+
+func NewKeyValueDataForHeader(header v2.HeaderMatcher) (kvData *KeyValueData, err error) {
+	if kvData, err = newKeyValueData(header.Name, header.Value, header.Regex); err != nil {
+		log.DefaultLogger.Errorf("parse route header matcher config failed, ignore it, error: %v", err)
+		return nil, err
+	}
+	return kvData, nil
+}
+
+func NewKeyValueDataForQueryParam(queryParam v2.QueryParamMatcher) (kvData *KeyValueData, err error) {
+	if kvData, err = newKeyValueData(queryParam.Name, queryParam.Value, queryParam.Regex); err != nil {
+		log.DefaultLogger.Errorf("parse route query parameter matcher config failed, ignore it, error: %v", err)
+		return nil, err
 	}
 	return kvData, nil
 }
@@ -135,7 +151,7 @@ func (m commonHeaderMatcherImpl) Matches(_ context.Context, headers api.HeaderMa
 func CreateCommonHeaderMatcher(headers []v2.HeaderMatcher) types.HeaderMatcher {
 	hm := make(commonHeaderMatcherImpl, 0, len(headers))
 	for _, header := range headers {
-		if kv, err := NewKeyValueData(header); err == nil {
+		if kv, err := NewKeyValueDataForHeader(header); err == nil {
 			hm = append(hm, kv)
 		}
 	}
@@ -184,18 +200,14 @@ func CreateHTTPHeaderMatcher(headers []v2.HeaderMatcher) types.HeaderMatcher {
 		case "method":
 			matcher.variables[types.VarMethod] = header.Value
 		default:
-			if kv, err := NewKeyValueData(header); err == nil {
+			if kv, err := NewKeyValueDataForHeader(header); err == nil {
 				matcher.headers = append(matcher.headers, kv)
 			}
 		}
 	}
 	return matcher
-
 }
 
-// TODO: support query params match
-// queryParameterMatcherImpl implements a types.QueryParamsMatcher
-// nolint: unused
 type queryParameterMatcherImpl []*KeyValueData
 
 func (m queryParameterMatcherImpl) Matches(ctx context.Context, queryParams types.QueryParams) bool {
@@ -213,6 +225,16 @@ func (m queryParameterMatcherImpl) Matches(ctx context.Context, queryParams type
 		}
 	}
 	return true
+}
+
+func CreateCommonQueryParameterMatcher(queryParams []v2.QueryParamMatcher) types.QueryParameterMatcher {
+	matcher := make(queryParameterMatcherImpl, 0, len(queryParams))
+	for _, queryParam := range queryParams {
+		if kv, err := NewKeyValueDataForQueryParam(queryParam); err == nil {
+			matcher = append(matcher, kv)
+		}
+	}
+	return matcher
 }
 
 // NewConfigImpl return an configImpl instance contains requestHeadersParser and responseHeadersParser

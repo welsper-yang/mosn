@@ -38,12 +38,24 @@ import (
 func TestHTTPRuleMatchMethod(t *testing.T) {
 	route := &v2.Router{
 		RouterConfig: v2.RouterConfig{
-			Match: v2.RouterMatch{Headers: []v2.HeaderMatcher{
-				{
-					Name:  "method",
-					Value: "POST",
+			Match: v2.RouterMatch{
+				Headers: []v2.HeaderMatcher{
+					{
+						Name:  "method",
+						Value: "POST",
+					},
 				},
-			}},
+				QueryParams: []v2.QueryParamMatcher{
+					{
+						Name:  "test",
+						Value: "testVal",
+					},
+					{
+						Name:  "fail",
+						Value: "failVal",
+					},
+				},
+			},
 			Route: v2.RouteAction{
 				RouterActionConfig: v2.RouterActionConfig{
 					ClusterName: "test",
@@ -57,13 +69,15 @@ func TestHTTPRuleMatchMethod(t *testing.T) {
 		t.FailNow()
 	}
 
-	httpRule := NewBaseHTTPRouteRule(routeRuleBase, route.Match.Headers)
+	httpRule := NewBaseHTTPRouteRule(routeRuleBase, route.Match.Headers, route.Match.QueryParams)
 
 	headers := mhttp.RequestHeader{
 		RequestHeader: &fasthttp.RequestHeader{},
 	}
+	queryString := "test=testVal&fail=failVal"
 	ctx := variable.NewVariableContext(context.Background())
 	variable.SetString(ctx, types.VarMethod, "POST")
+	variable.SetString(ctx, types.VarQueryString, queryString)
 	match := httpRule.matchRoute(ctx, headers)
 	if !assert.Truef(t, match, "match http method failed, result should be true, get %+v", match) {
 		t.FailNow()
@@ -113,7 +127,7 @@ func TestPrefixRouteRuleImpl(t *testing.T) {
 		}
 		base, _ := NewRouteRuleImplBase(virtualHostImpl, route)
 		rr := &PrefixRouteRuleImpl{
-			NewBaseHTTPRouteRule(base, nil),
+			NewBaseHTTPRouteRule(base, nil, nil),
 			route.Match.Prefix,
 		}
 		headers := protocol.CommonHeader(map[string]string{})
@@ -154,7 +168,7 @@ func TestPathRouteRuleImpl(t *testing.T) {
 			},
 		}
 		base, _ := NewRouteRuleImplBase(virtualHostImpl, route)
-		rr := &PathRouteRuleImpl{NewBaseHTTPRouteRule(base, nil), route.Match.Path}
+		rr := &PathRouteRuleImpl{NewBaseHTTPRouteRule(base, nil, nil), route.Match.Path}
 		headers := protocol.CommonHeader(map[string]string{})
 		variable.SetString(ctx, types.VarPath, tc.headerpath)
 		result := rr.Match(ctx, headers)
@@ -197,7 +211,7 @@ func TestRegexRouteRuleImpl(t *testing.T) {
 		base, _ := NewRouteRuleImplBase(virtualHostImpl, route)
 
 		rr := &RegexRouteRuleImpl{
-			NewBaseHTTPRouteRule(base, nil),
+			NewBaseHTTPRouteRule(base, nil, nil),
 			route.Match.Regex,
 			re,
 		}

@@ -158,12 +158,12 @@ func NewRouteBase(vh api.VirtualHost, route *v2.Router) (api.RouteBase, error) {
 	var router RouteBase
 	if route.Match.Prefix != "" {
 		router = &PrefixRouteRuleImpl{
-			BaseHTTPRouteRule: NewBaseHTTPRouteRule(base, route.Match.Headers),
+			BaseHTTPRouteRule: NewBaseHTTPRouteRule(base, route.Match.Headers, route.Match.QueryParams),
 			prefix:            route.Match.Prefix,
 		}
 	} else if route.Match.Path != "" {
 		router = &PathRouteRuleImpl{
-			BaseHTTPRouteRule: NewBaseHTTPRouteRule(base, route.Match.Headers),
+			BaseHTTPRouteRule: NewBaseHTTPRouteRule(base, route.Match.Headers, route.Match.QueryParams),
 			path:              route.Match.Path,
 		}
 	} else if route.Match.Regex != "" {
@@ -173,7 +173,7 @@ func NewRouteBase(vh api.VirtualHost, route *v2.Router) (api.RouteBase, error) {
 			return nil, err
 		}
 		router = &RegexRouteRuleImpl{
-			BaseHTTPRouteRule: NewBaseHTTPRouteRule(base, route.Match.Headers),
+			BaseHTTPRouteRule: NewBaseHTTPRouteRule(base, route.Match.Headers, route.Match.QueryParams),
 			regexStr:          route.Match.Regex,
 			regexPattern:      regPattern,
 		}

@@ -155,6 +155,8 @@ func convertRouteMatch(xdsRouteMatch *envoy_config_route_v3.RouteMatch) v2.Route
 	rm := v2.RouterMatch{
 		Prefix: xdsRouteMatch.GetPrefix(),
 		Path:   xdsRouteMatch.GetPath(),
+		// simplified query parameters matcher that supports exact or regex matching
+		QueryParams: convertQueryParameters(xdsRouteMatch.GetQueryParameters()),
 		//CaseSensitive: xdsRouteMatch.GetCaseSensitive().GetValue(),
 		//Runtime:       convertRuntime(xdsRouteMatch.GetRuntime()),
 		Headers: convertHeaders(xdsRouteMatch.GetHeaders()),
@@ -163,6 +165,29 @@ func convertRouteMatch(xdsRouteMatch *envoy_config_route_v3.RouteMatch) v2.Route
 		rm.Regex = xdsRouteMatch.GetSafeRegex().Regex
 	}
 	return rm
+}
+
+func convertQueryParameters(xdsQueryParams []*envoy_config_route_v3.QueryParameterMatcher) []v2.QueryParamMatcher {
+	if xdsQueryParams == nil {
+		return nil
+	}
+	queryParamMatchers := make([]v2.QueryParamMatcher, 0, len(xdsQueryParams))
+	for _, xdsQueryParam := range xdsQueryParams {
+		queryParamMatcher := v2.QueryParamMatcher{}
+		if xdsQueryParam.GetStringMatch() != nil {
+			if xdsQueryParam.GetStringMatch().GetSafeRegex().GetRegex() != "" {
+				queryParamMatcher.Name = xdsQueryParam.GetName()
+				queryParamMatcher.Value = xdsQueryParam.GetStringMatch().GetSafeRegex().GetRegex()
+				queryParamMatcher.Regex = true
+			} else {
+				queryParamMatcher.Name = xdsQueryParam.GetName()
+				queryParamMatcher.Value = xdsQueryParam.GetStringMatch().GetExact()
+				queryParamMatcher.Regex = false
+			}
+		}
+		queryParamMatchers = append(queryParamMatchers, queryParamMatcher)
+	}
+	return queryParamMatchers
 }
 
 func convertHeaders(xdsHeaders []*envoy_config_route_v3.HeaderMatcher) []v2.HeaderMatcher {

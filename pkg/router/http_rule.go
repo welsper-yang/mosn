@@ -19,6 +19,7 @@ package router
 
 import (
 	"context"
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -36,10 +37,11 @@ type BaseHTTPRouteRule struct {
 	configQueryParameters types.QueryParameterMatcher //TODO: not implement yet
 }
 
-func NewBaseHTTPRouteRule(base *RouteRuleImplBase, headers []v2.HeaderMatcher) *BaseHTTPRouteRule {
+func NewBaseHTTPRouteRule(base *RouteRuleImplBase, headers []v2.HeaderMatcher, queryParams []v2.QueryParamMatcher) *BaseHTTPRouteRule {
 	return &BaseHTTPRouteRule{
-		RouteRuleImplBase: base,
-		configHeaders:     CreateHTTPHeaderMatcher(headers),
+		RouteRuleImplBase:     base,
+		configHeaders:         CreateHTTPHeaderMatcher(headers),
+		configQueryParameters: CreateCommonQueryParameterMatcher(queryParams),
 	}
 }
 
@@ -51,17 +53,21 @@ func (rri *BaseHTTPRouteRule) HeaderMatchCriteria() api.KeyValueMatchCriteria {
 }
 
 func (rri *BaseHTTPRouteRule) matchRoute(ctx context.Context, headers api.HeaderMap) bool {
+	fmt.Println("enter matchRoute!!!")
 	// 1. match headers' KV
 	if !rri.configHeaders.Matches(ctx, headers) {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match header", headers)
 		}
+		fmt.Println("match failed! caused by: incorrect header")
 		return false
 	}
 	// 2. match query parameters
 	if rri.configQueryParameters != nil {
+		fmt.Println("enter query parameters process!!!")
 		var queryParams types.QueryParams
 		QueryString, err := variable.GetString(ctx, types.VarQueryString)
+		fmt.Printf("query string is: [%s]\n", QueryString)
 		if err == nil && QueryString != "" {
 			queryParams = http.ParseQueryString(QueryString)
 		}
@@ -70,10 +76,12 @@ func (rri *BaseHTTPRouteRule) matchRoute(ctx context.Context, headers api.Header
 				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 					log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match query params", queryParams)
 				}
+				fmt.Println("match failed! caused by: incorrect query parameter")
 				return false
 			}
 		}
 	}
+	fmt.Println("match pass!!!")
 	return true
 }
 
