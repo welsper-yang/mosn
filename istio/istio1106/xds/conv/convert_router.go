@@ -159,7 +159,8 @@ func convertRouteMatch(xdsRouteMatch *envoy_config_route_v3.RouteMatch) v2.Route
 		QueryParams: convertQueryParameters(xdsRouteMatch.GetQueryParameters()),
 		//CaseSensitive: xdsRouteMatch.GetCaseSensitive().GetValue(),
 		//Runtime:       convertRuntime(xdsRouteMatch.GetRuntime()),
-		Headers: convertHeaders(xdsRouteMatch.GetHeaders()),
+		Headers:       convertHeaders(xdsRouteMatch.GetHeaders()),
+		CaseSensitive: xdsRouteMatch.GetCaseSensitive().GetValue(),
 	}
 	if xdsRouteMatch.GetSafeRegex() != nil {
 		rm.Regex = xdsRouteMatch.GetSafeRegex().Regex

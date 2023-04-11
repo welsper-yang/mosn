@@ -33,7 +33,7 @@ import (
 type BaseHTTPRouteRule struct {
 	*RouteRuleImplBase
 	configHeaders         types.HeaderMatcher
-	configQueryParameters types.QueryParameterMatcher //TODO: not implement yet
+	configQueryParameters types.QueryParameterMatcher
 }
 
 func NewBaseHTTPRouteRule(base *RouteRuleImplBase, headers []v2.HeaderMatcher, queryParams []v2.QueryParamMatcher) *BaseHTTPRouteRule {
@@ -80,7 +80,8 @@ func (rri *BaseHTTPRouteRule) matchRoute(ctx context.Context, headers api.Header
 
 type PathRouteRuleImpl struct {
 	*BaseHTTPRouteRule
-	path string
+	path          string
+	caseSensitive bool
 }
 
 func (prri *PathRouteRuleImpl) PathMatchCriterion() api.PathMatchCriterion {
@@ -107,15 +108,19 @@ func (prri *PathRouteRuleImpl) FinalizeRequestHeaders(ctx context.Context, heade
 	prri.finalizePathHeader(ctx, headers, prri.path)
 }
 
+func (prri *PathRouteRuleImpl) MatchPath(path string) bool {
+	if prri.caseSensitive {
+		return path == prri.path
+	} else {
+		return strings.EqualFold(path, prri.path)
+	}
+}
+
 func (prri *PathRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
 	if prri.matchRoute(ctx, headers) {
 		headerPathValue, err := variable.GetString(ctx, types.VarPath)
-		if err == nil && headerPathValue != "" {
-			// TODO: config to support case sensitive
-			// case insensitive
-			if strings.EqualFold(headerPathValue, prri.path) {
-				return prri
-			}
+		if err == nil && prri.MatchPath(headerPathValue) {
+			return prri
 		}
 	}
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
@@ -127,7 +132,8 @@ func (prri *PathRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap)
 // PrefixRouteRuleImpl used to "match path" with "prefix match"
 type PrefixRouteRuleImpl struct {
 	*BaseHTTPRouteRule
-	prefix string
+	prefix        string
+	caseSensitive bool
 }
 
 func (prei *PrefixRouteRuleImpl) PathMatchCriterion() api.PathMatchCriterion {
@@ -154,13 +160,19 @@ func (prei *PrefixRouteRuleImpl) FinalizeRequestHeaders(ctx context.Context, hea
 	prei.finalizePathHeader(ctx, headers, prei.prefix)
 }
 
+func (prei *PrefixRouteRuleImpl) MatchPrefix(path string) bool {
+	if prei.caseSensitive {
+		return strings.HasPrefix(path, prei.prefix)
+	} else {
+		return len(path) >= len(prei.prefix) && strings.ToLower(path[0:len(prei.prefix)]) == strings.ToLower(prei.prefix)
+	}
+}
+
 func (prei *PrefixRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
 	if prei.matchRoute(ctx, headers) {
 		headerPathValue, err := variable.GetString(ctx, types.VarPath)
-		if err == nil && headerPathValue != "" {
-			if strings.HasPrefix(headerPathValue, prei.prefix) {
-				return prei
-			}
+		if err == nil && prei.MatchPrefix(headerPathValue) {
+			return prei
 		}
 	}
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {

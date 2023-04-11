@@ -308,6 +308,7 @@ type RouterMatch struct {
 	Headers        []HeaderMatcher        `json:"headers,omitempty"`    // Match request's Headers
 	Variables      []VariableMatcher      `json:"variables,omitempty"`  // Match request's variable
 	DslExpressions []DslExpressionMatcher `json:"dsl_expressions,omitempty"`
+	CaseSensitive  bool                   `json:"case_sensitive,omitempty"`
 }
 
 // RedirectAction represents the redirect response parameters

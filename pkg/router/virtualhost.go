@@ -160,11 +160,13 @@ func NewRouteBase(vh api.VirtualHost, route *v2.Router) (api.RouteBase, error) {
 		router = &PrefixRouteRuleImpl{
 			BaseHTTPRouteRule: NewBaseHTTPRouteRule(base, route.Match.Headers, route.Match.QueryParams),
 			prefix:            route.Match.Prefix,
+			caseSensitive:     route.Match.CaseSensitive,
 		}
 	} else if route.Match.Path != "" {
 		router = &PathRouteRuleImpl{
 			BaseHTTPRouteRule: NewBaseHTTPRouteRule(base, route.Match.Headers, route.Match.QueryParams),
 			path:              route.Match.Path,
+			caseSensitive:     route.Match.CaseSensitive,
 		}
 	} else if route.Match.Regex != "" {
 		regPattern, err := regexp.Compile(route.Match.Regex)
